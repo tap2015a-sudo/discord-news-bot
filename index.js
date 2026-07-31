@@ -1,56 +1,49 @@
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
+const http = require("http");
+const {
+  Client,
+  GatewayIntentBits,
+  Events,
+  SlashCommandBuilder
+} = require("discord.js");
 
 const token = process.env.DISCORD_TOKEN;
 
 if (!token) {
-  console.error('Missing DISCORD_TOKEN environment variable.');
+  console.log("Missing DISCORD_TOKEN");
   process.exit(1);
 }
 
+const port = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Bot is running");
+}).listen(port);
+
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds]
 });
 
-client.commands = new Collection();
+const commands = [
+  new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("يتأكد أن البوت شغال")
+    .toJSON()
+];
 
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+client.once(Events.ClientReady, async () => {
+  console.log(`Bot is online as ${client.user.tag}`);
 
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath);
-
-  if ('data' in command && 'execute' in command) {
-    client.commands.set(command.data.name, command);
-  } else {
-    console.warn(`Command file ${file} is missing "data" or "execute".`);
+  for (const guild of client.guilds.cache.values()) {
+    await guild.commands.set(commands);
   }
-}
-
-client.once(Events.ClientReady, readyClient => {
-  console.log(`Bot is online as ${readyClient.user.tag}`);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
-
-    const message = { content: 'صار خطأ أثناء تنفيذ الأمر.', ephemeral: true };
-
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(message);
-    } else {
-      await interaction.reply(message);
-    }
+  if (interaction.commandName === "ping") {
+    await interaction.reply("🏓 البوت شغال!");
   }
 });
 
