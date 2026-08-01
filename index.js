@@ -28,7 +28,11 @@ const commands = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("يتأكد أن البوت شغال")
-    .toJSON()
+    .toJSON(),
+ new SlashCommandBuilder()
+  .setName("help")
+ .setDescription("يعرض جميع أوامر البوت")
+  .toJSON()
 ];
 
 client.once(Events.ClientReady, async () => {
@@ -45,6 +49,8 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === "ping") {
     await interaction.reply("🏓 البوت شغال!");
   }
+  if (interaction.commandName === "help") {
+    await interaction.reply("📋 الأوامر المتوفرة:\n/ping - يتأكد أن البوت شغال\n/help - يعرض جميع أوامر البوت");
 });
 
 client.login(token);
