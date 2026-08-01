@@ -51,6 +51,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
   if (interaction.commandName === "help") {
     await interaction.reply("📋 الأوامر المتوفرة:\n/ping - يتأكد أن البوت شغال\n/help - يعرض جميع أوامر البوت");
-});
+}
+  });
 
 client.login(token);
