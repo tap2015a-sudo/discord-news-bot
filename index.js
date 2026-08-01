@@ -32,6 +32,10 @@ const commands = [
  new SlashCommandBuilder()
   .setName("help")
  .setDescription("يعرض جميع أوامر البوت")
+  .toJSON(),
+  new SlashCommandBuilder()
+  .setName("avatar")
+  .setDescription("يعرض صورة حسابك")
   .toJSON()
 ];
 
@@ -52,6 +56,10 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === "help") {
     await interaction.reply("📋 الأوامر المتوفرة:\n/ping - يتأكد أن البوت شغال\n/help - يعرض جميع أوامر البوت");
 }
+  if (interaction.commandName === "avatar") {
+    const avatar = interaction.user.displayAvatarURL({ size: 1024 });
+    await interaction.reply(avatar);
+    }
   });
 
 client.login(token);
