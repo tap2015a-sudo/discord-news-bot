@@ -68,11 +68,13 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === "userinfo") {
     const username = interaction.user.username;
     const id = interaction.user.id;
+    const createdAt = interaction.user.createdAt;
     const avatar = interaction.user.displayAvatarURL({ size: 1024 });
     const embed = new EmbedBuilder()
     .setTitle("👤 معلومات المستخدم")
-    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}`)
+    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}\n📅 إنشاء الحساب: ${createdAt}`)
     .setThumbnail(avatar)
+    .setColor("Blue")
     await interaction.reply({ embeds: [embed] });
   }
   });
