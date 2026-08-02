@@ -68,7 +68,12 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === "userinfo") {
     const username = interaction.user.username;
     const id = interaction.user.id;
-    await interaction.reply(`👤 الاسم: ${username}\n🆔 ID: ${id}`);
+    const avatar = interaction.user.displayAvatarURL({ size: 1024 });
+    const embed = new EmbedBuilder()
+    .setTitle("👤 معلومات المستخدم")
+    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}`)
+    .setThumbnail(avatar)
+    await interaction.reply({ embeds: [embed] });
   }
   });
 
