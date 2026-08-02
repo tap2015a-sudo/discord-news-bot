@@ -1,10 +1,12 @@
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
 const {
   Client,
+  Collection,
   GatewayIntentBits,
   Events,
-  SlashCommandBuilder,
- EmbedBuilder 
 } = require("discord.js");
 
 const token = process.env.DISCORD_TOKEN;
@@ -16,93 +18,85 @@ if (!token) {
 
 const port = process.env.PORT || 3000;
 
-http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("Bot is running");
-}).listen(port);
+http
+  .createServer((req, res) => {
+    res.writeHead(200);
+    res.end("Bot is running");
+  })
+  .listen(port);
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds],
 });
 
-const commands = [
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("يتأكد أن البوت شغال")
-    .toJSON(),
- new SlashCommandBuilder()
-  .setName("help")
- .setDescription("يعرض جميع أوامر البوت")
-  .toJSON(),
-  new SlashCommandBuilder()
-  .setName("avatar")
-  .setDescription("يعرض صورة حسابك")
-  .toJSON(),
-  new SlashCommandBuilder()
-.setName("userinfo")
-.setDescription("يعرض صورة حسابك")
-.toJSON(),
-];
+client.commands = new Collection();
 
-client.once(Events.ClientReady, async () => {
-  console.log(`Bot is online as ${client.user.tag}`);
+const commandsPath = path.join(__dirname, "commands");
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter((file) => file.endsWith(".js"));
 
-  for (const guild of client.guilds.cache.values()) {
-    await guild.commands.set(commands);
+for (const file of commandFiles) {
+  const filePath = path.join(commandsPath, file);
+  const command = require(filePath);
+
+  if (
+    command.data &&
+    typeof command.execute === "function"
+  ) {
+    client.commands.set(command.data.name, command);
+  } else {
+    console.log(`Invalid command file: ${file}`);
   }
+}
+
+client.once(Events.ClientReady, async (readyClient) => {
+  console.log(`Bot is online as ${readyClient.user.tag}`);
+
+  const commandsData = client.commands.map((command) =>
+    command.data.toJSON()
+  );
+
+  for (const guild of readyClient.guilds.cache.values()) {
+    await guild.commands.set(commandsData);
+  }
+
+  console.log(
+    `Loaded ${client.commands.size} commands successfully`
+  );
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "ping") {
-    await interaction.reply("🏓 البوت شغال!");
-  }
-  if (interaction.commandName === "help") {
-    await interaction.reply("📋 الأوامر المتوفرة:\n/ping - يتأكد أن البوت شغال\n/help - يعرض جميع أوامر البوت");
-}
-  if (interaction.commandName === "avatar") {
-    const avatar = interaction.user.displayAvatarURL({ size: 1024 });
-    await interaction.reply(avatar);
-    }
-  if (interaction.commandName === "userinfo") {
-    const user = interaction.user;
-const avatar = user.displayAvatarURL({ size: 1024 });
-const timestamp = Math.floor(user.createdTimestamp / 1000);
-const date = user.createdAt.toISOString().split("T")[0].replace(/-/g, "/");
+  const command = client.commands.get(
+    interaction.commandName
+  );
 
-const embed = new EmbedBuilder()
-  .setColor("Blue")
-  .setAuthor({
-    name: `معلومات ${user.username}`,
-    iconURL: avatar,
-  })
-  .setThumbnail(avatar)
-  .addFields(
-    {
-      name: "👤 اسم المستخدم",
-      value: `\`${user.username}\``,
-      inline: true,
-    },
-    {
-      name: "🆔 ID",
-      value: `\`${user.id}\``,
-      inline: true,
-    },
-    {
-      name: "📅 إنشاء الحساب",
-      value: `\`${date}\`\n<t:${timestamp}:R>`,
-      inline: false,
-    }
-  )
-  .setFooter({
-    text: `طلب بواسطة ${interaction.user.username}`,
-    iconURL: avatar,
-  })
-  .setTimestamp();
+  if (!command) return;
 
-await interaction.reply({ embeds: [embed] });
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(
+      `Error executing /${interaction.commandName}:`,
+      error
+    );
+
+    const errorMessage = {
+      content: "❌ حدث خطأ أثناء تنفيذ الأمر.",
+      ephemeral: true,
+    };
+
+    if (
+      interaction.replied ||
+      interaction.deferred
+    ) {
+      await interaction.followUp(errorMessage);
+    } else {
+      await interaction.reply(errorMessage);
+    }
   }
-  });
+});
 
 client.login(token);
