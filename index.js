@@ -66,7 +66,8 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   if (interaction.commandName === "userinfo") {
     const username = interaction.user.username;
-    await interaction.reply(username);
+    const id = interaction.user.id;
+    await interaction.reply(`👤 الاسم: ${username}\n🆔 ID: ${id}`);
   }
   });
 
