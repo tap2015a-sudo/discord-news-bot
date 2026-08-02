@@ -69,10 +69,11 @@ client.on(Events.InteractionCreate, async interaction => {
     const username = interaction.user.username;
     const id = interaction.user.id;
     const createdAt = interaction.user.createdAt;
+    const timestamp = Math.floor(createdAt.getTime() / 1000);
     const avatar = interaction.user.displayAvatarURL({ size: 1024 });
     const embed = new EmbedBuilder()
     .setTitle("👤 معلومات المستخدم")
-    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}\n📅 إنشاء الحساب: ${createdAt}`)
+    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}\n📅 إنشاء الحساب: <t:${timestamp}:D>\n⏳ <t:${timestamp}:R>`)
     .setThumbnail(avatar)
     .setColor("Blue")
     await interaction.reply({ embeds: [embed] });
