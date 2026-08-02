@@ -6,223 +6,259 @@ const {
   ButtonStyle,
 } = require("discord.js");
 
-const badgeNames = {
+const BADGE_NAMES = {
   Staff: "موظف ديسكورد",
   Partner: "شريك ديسكورد",
   Hypesquad: "فعاليات HypeSquad",
-  BugHunterLevel1: "صائد أخطاء مستوى 1",
-  HypeSquadOnlineHouse1: "Bravery",
-  HypeSquadOnlineHouse2: "Brilliance",
-  HypeSquadOnlineHouse3: "Balance",
+  BugHunterLevel1: "صائد أخطاء — المستوى الأول",
+  HypeSquadOnlineHouse1: "HypeSquad Bravery",
+  HypeSquadOnlineHouse2: "HypeSquad Brilliance",
+  HypeSquadOnlineHouse3: "HypeSquad Balance",
   PremiumEarlySupporter: "الداعم المبكر",
   TeamPseudoUser: "فريق ديسكورد",
-  BugHunterLevel2: "صائد أخطاء مستوى 2",
-  VerifiedBot: "بوت موثق",
-  VerifiedDeveloper: "مطور بوتات موثق",
+  BugHunterLevel2: "صائد أخطاء — المستوى الثاني",
+  VerifiedBot: "بوت موثّق",
+  VerifiedDeveloper: "مطوّر بوتات موثّق",
   CertifiedModerator: "مشرف ديسكورد معتمد",
   BotHTTPInteractions: "بوت HTTP",
-  ActiveDeveloper: "مطور نشط",
+  ActiveDeveloper: "مطوّر نشط",
 };
 
 function formatDate(date) {
   return date.toISOString().split("T")[0].replace(/-/g, "/");
 }
 
-function unixTimestamp(date) {
+function toTimestamp(date) {
   return Math.floor(date.getTime() / 1000);
+}
+
+function shorten(text, maxLength = 1000) {
+  if (!text) return "لا يوجد";
+  return text.length > maxLength
+    ? `${text.slice(0, maxLength - 3)}...`
+    : text;
 }
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("userinfo")
-    .setDescription("يعرض معلومات حسابك بشكل مفصل")
-    .setDescriptionLocalizations({
-      "en-US": "Shows detailed information about your account",
-      "en-GB": "Shows detailed information about your account",
-    }),
+    .setDescription("يعرض معلومات المستخدم بشكل احترافي")
+    .addUserOption((option) =>
+      option
+        .setName("user")
+        .setDescription("المستخدم الذي تريد عرض معلوماته")
+        .setRequired(false)
+    ),
 
   async execute(interaction) {
-    const isArabic = interaction.locale?.startsWith("ar");
-    const user = await interaction.user.fetch(true);
-    const member = interaction.inGuild() ? interaction.member : null;
+    const selectedUser =
+      interaction.options.getUser("user") || interaction.user;
 
-    const avatar = user.displayAvatarURL({
-      size: 1024,
-    });
+    const user = await selectedUser.fetch(true);
 
-    const banner = user.bannerURL({
-      size: 2048,
-    });
+    let member = null;
 
-    const accountTimestamp = unixTimestamp(user.createdAt);
-    const accountDate = formatDate(user.createdAt);
+    if (interaction.inGuild()) {
+      try {
+        member = await interaction.guild.members.fetch(user.id);
+      } catch {
+        member = null;
+      }
+    }
 
-    const joinedTimestamp = member?.joinedAt
-      ? unixTimestamp(member.joinedAt)
-      : null;
+    const avatar = member
+      ? member.displayAvatarURL({ size: 1024 })
+      : user.displayAvatarURL({ size: 1024 });
 
-    const joinedDate = member?.joinedAt
-      ? formatDate(member.joinedAt)
-      : null;
+    const banner =
+      member?.displayBannerURL({ size: 2048 }) ||
+      user.bannerURL({ size: 2048 });
+
+    const decoration =
+      member?.displayAvatarDecorationURL() ||
+      user.avatarDecorationURL();
 
     const displayName =
       member?.displayName ||
       user.globalName ||
       user.username;
 
-    const publicBadges =
+    const accountTimestamp = toTimestamp(user.createdAt);
+    const accountDate = formatDate(user.createdAt);
+
+    const joinedTimestamp = member?.joinedAt
+      ? toTimestamp(member.joinedAt)
+      : null;
+
+    const joinedDate = member?.joinedAt
+      ? formatDate(member.joinedAt)
+      : null;
+
+    const badgeList =
       user.flags
         ?.toArray()
-        .map((badge) => badgeNames[badge] || badge) || [];
+        .map((badge) => BADGE_NAMES[badge] || badge) || [];
 
     if (member?.premiumSince) {
-      publicBadges.push(
-        isArabic ? "داعم السيرفر" : "Server Booster"
-      );
+      badgeList.push("داعم السيرفر");
     }
 
     const badges =
-      publicBadges.length > 0
-        ? publicBadges.join(" • ")
-        : isArabic
-          ? "لا توجد شارات ظاهرة"
-          : "No visible badges";
+      badgeList.length > 0
+        ? badgeList.join(" • ")
+        : "لا توجد شارات ظاهرة";
 
-    const roles = member
+    const rolesCollection = member
       ? member.roles.cache
-          .filter((role) => role.id !== interaction.guild.id)
-          .sort((first, second) => second.position - first.position)
-          .first(10)
-          .map((role) => role.toString())
-          .join(" ")
-      : "";
+          .filter(
+            (role) =>
+              role.id !== interaction.guild.id
+          )
+          .sort(
+            (first, second) =>
+              second.position - first.position
+          )
+      : null;
 
-    const roleText =
-      roles ||
-      (isArabic ? "لا توجد رتب" : "No roles");
+    const roles =
+      rolesCollection && rolesCollection.size > 0
+        ? rolesCollection
+            .first(10)
+            .map((role) => role.toString())
+            .join(" ")
+        : "لا توجد رتب";
 
     const highestRole =
       member &&
       member.roles.highest.id !== interaction.guild.id
         ? member.roles.highest.toString()
-        : isArabic
-          ? "لا توجد"
-          : "None";
+        : "لا توجد";
+
+    const accountType = user.bot
+      ? "بوت 🤖"
+      : "مستخدم 👤";
+
+    const boostStatus = member?.premiumSince
+      ? `منذ <t:${toTimestamp(member.premiumSince)}:R>`
+      : "غير داعم";
 
     const embedColor =
-      member?.displayColor || 0x5865f2;
+      member?.displayColor ||
+      user.accentColor ||
+      0x5865f2;
 
     const embed = new EmbedBuilder()
       .setColor(embedColor)
       .setAuthor({
-        name: isArabic
-          ? `معلومات ${displayName}`
-          : `${displayName}'s Information`,
+        name: `معلومات ${displayName}`,
         iconURL: avatar,
       })
-      .setTitle(
-        isArabic
-          ? "👤 معلومات المستخدم"
-          : "👤 User Information"
-      )
+      .setTitle("👤 معلومات المستخدم")
       .setThumbnail(avatar)
       .addFields(
         {
-          name: isArabic
-            ? "👤 اسم المستخدم"
-            : "👤 Username",
+          name: "👤 اسم المستخدم",
           value: `\`${user.username}\``,
           inline: true,
         },
         {
-          name: isArabic
-            ? "🏷️ اسم العرض"
-            : "🏷️ Display Name",
+          name: "🏷️ اسم العرض",
           value: `\`${displayName}\``,
           inline: true,
         },
         {
-          name: "🆔 ID",
+          name: "🆔 المعرّف",
           value: `\`${user.id}\``,
           inline: false,
         },
         {
-          name: isArabic
-            ? "📅 إنشاء الحساب"
-            : "📅 Account Created",
+          name: "📌 نوع الحساب",
+          value: accountType,
+          inline: true,
+        },
+        {
+          name: "🚀 تعزيز السيرفر",
+          value: boostStatus,
+          inline: true,
+        },
+        {
+          name: "📅 إنشاء الحساب",
           value:
             `\`${accountDate}\`\n` +
             `<t:${accountTimestamp}:R>`,
           inline: true,
         },
         {
-          name: isArabic
-            ? "📥 دخول السيرفر"
-            : "📥 Joined Server",
+          name: "📥 دخول السيرفر",
           value: joinedTimestamp
             ? `\`${joinedDate}\`\n<t:${joinedTimestamp}:R>`
-            : isArabic
-              ? "غير متوفر"
-              : "Unavailable",
+            : "غير متوفر",
           inline: true,
         },
         {
-          name: isArabic
-            ? "⭐ أعلى رتبة"
-            : "⭐ Highest Role",
+          name: "⭐ أعلى رتبة",
           value: highestRole,
+          inline: true,
+        },
+        {
+          name: "🎭 الرتب",
+          value: shorten(roles),
           inline: false,
         },
         {
-          name: isArabic
-            ? "🎭 الرتب"
-            : "🎭 Roles",
-          value: roleText,
-          inline: false,
-        },
-        {
-          name: isArabic
-            ? "🏅 الشارات"
-            : "🏅 Badges",
-          value: badges,
+          name: "🏅 الشارات",
+          value: shorten(badges),
           inline: false,
         }
       )
       .setFooter({
-        text: isArabic
-          ? `طلب بواسطة ${interaction.user.username}`
-          : `Requested by ${interaction.user.username}`,
-        iconURL: interaction.user.displayAvatarURL(),
+        text: `طلب بواسطة ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL({
+          size: 256,
+        }),
       })
       .setTimestamp();
 
-    if (banner) {
-      embed.setImage(banner);
-    }
+    // يعرض البانر بصورة كبيرة، وإن لم يوجد يعرض الأفتار.
+    embed.setImage(banner || avatar);
 
     const buttons = [
       new ButtonBuilder()
-        .setLabel(
-          isArabic ? "فتح الصورة" : "Open Avatar"
-        )
+        .setLabel("فتح الصورة")
         .setEmoji("🖼️")
         .setStyle(ButtonStyle.Link)
         .setURL(avatar),
+
+      new ButtonBuilder()
+        .setLabel("فتح الحساب")
+        .setEmoji("👤")
+        .setStyle(ButtonStyle.Link)
+        .setURL(`https://discord.com/users/${user.id}`),
     ];
 
     if (banner) {
       buttons.push(
         new ButtonBuilder()
-          .setLabel(
-            isArabic ? "فتح البانر" : "Open Banner"
-          )
+          .setLabel("فتح البانر")
           .setEmoji("🎨")
           .setStyle(ButtonStyle.Link)
           .setURL(banner)
       );
     }
 
-    const row = new ActionRowBuilder().addComponents(buttons);
+    if (decoration) {
+      buttons.push(
+        new ButtonBuilder()
+          .setLabel("فتح الزخرفة")
+          .setEmoji("✨")
+          .setStyle(ButtonStyle.Link)
+          .setURL(decoration)
+      );
+    }
+
+    const row = new ActionRowBuilder().addComponents(
+      buttons
+    );
 
     await interaction.reply({
       embeds: [embed],
