@@ -66,17 +66,42 @@ client.on(Events.InteractionCreate, async interaction => {
     await interaction.reply(avatar);
     }
   if (interaction.commandName === "userinfo") {
-    const username = interaction.user.username;
-    const id = interaction.user.id;
-    const createdAt = interaction.user.createdAt;
-    const timestamp = Math.floor(createdAt.getTime() / 1000);
-    const avatar = interaction.user.displayAvatarURL({ size: 1024 });
-    const embed = new EmbedBuilder()
-    .setTitle("👤 معلومات المستخدم")
-    .setDescription(`👤 الاسم: ${username}\n🆔 ID: ${id}\n📅 إنشاء الحساب: <t:${timestamp}:D>\n⏳ <t:${timestamp}:R>`)
-    .setThumbnail(avatar)
-    .setColor("Blue")
-    await interaction.reply({ embeds: [embed] });
+    const user = interaction.user;
+const avatar = user.displayAvatarURL({ size: 1024 });
+const timestamp = Math.floor(user.createdTimestamp / 1000);
+const date = user.createdAt.toISOString().split("T")[0].replace(/-/g, "/");
+
+const embed = new EmbedBuilder()
+  .setColor("Blue")
+  .setAuthor({
+    name: `معلومات ${user.username}`,
+    iconURL: avatar,
+  })
+  .setThumbnail(avatar)
+  .addFields(
+    {
+      name: "👤 اسم المستخدم",
+      value: `\`${user.username}\``,
+      inline: true,
+    },
+    {
+      name: "🆔 ID",
+      value: `\`${user.id}\``,
+      inline: true,
+    },
+    {
+      name: "📅 إنشاء الحساب",
+      value: `\`${date}\`\n<t:${timestamp}:R>`,
+      inline: false,
+    }
+  )
+  .setFooter({
+    text: `طلب بواسطة ${interaction.user.username}`,
+    iconURL: avatar,
+  })
+  .setTimestamp();
+
+await interaction.reply({ embeds: [embed] });
   }
   });
 
