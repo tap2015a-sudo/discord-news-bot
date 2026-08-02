@@ -36,11 +36,11 @@ const commands = [
   new SlashCommandBuilder()
   .setName("avatar")
   .setDescription("يعرض صورة حسابك")
-  .toJSON()
+  .toJSON(),
   new SlashCommandBuilder()
 .setName("userinfo")
 .setDescription("يعرض صورة حسابك")
-.toJSON()
+.toJSON(),
 ];
 
 client.once(Events.ClientReady, async () => {
