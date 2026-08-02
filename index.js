@@ -3,7 +3,8 @@ const {
   Client,
   GatewayIntentBits,
   Events,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+ EmbedBuilder 
 } = require("discord.js");
 
 const token = process.env.DISCORD_TOKEN;
