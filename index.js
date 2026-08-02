@@ -37,6 +37,10 @@ const commands = [
   .setName("avatar")
   .setDescription("يعرض صورة حسابك")
   .toJSON()
+  new SlashCommandBuilder()
+.setName("userinfo")
+.setDescription("يعرض صورة حسابك")
+.toJSON()
 ];
 
 client.once(Events.ClientReady, async () => {
@@ -60,6 +64,10 @@ client.on(Events.InteractionCreate, async interaction => {
     const avatar = interaction.user.displayAvatarURL({ size: 1024 });
     await interaction.reply(avatar);
     }
+  if (interaction.commandName === "userinfo") {
+    const username = interaction.user.username;
+    await interaction.reply(username);
+  }
   });
 
 client.login(token);
